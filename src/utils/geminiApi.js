@@ -68,12 +68,27 @@ function toGeminiContents(messages) {
 function getCallConfig() {
   const customKey = typeof localStorage !== "undefined" ? localStorage.getItem("sj_custom_api_key") : null;
   const envKey = import.meta.env?.VITE_GEMINI_API_KEY;
-  let key = (customKey && customKey.trim()) || (envKey && envKey.trim()) || undefined;
+  let rawKey = (customKey && customKey.trim()) || (envKey && envKey.trim()) || undefined;
   
-  // Security: Validate format API key
-  if (key && !key.startsWith("AIza")) {
-    console.warn("Invalid API Key format detected.");
-    key = undefined;
+  if (!rawKey) return { apiKey: undefined };
+
+  // Sanitize quotes, backticks, Bearer prefix, and whitespace
+  let key = rawKey.replace(/^["'`]|["'`]$/g, "").replace(/^Bearer\s+/i, "").trim();
+
+  // If placeholder text from example is detected, discard it
+  if (
+    !key ||
+    key === "YOUR_GEMINI_API_KEY_HERE" ||
+    key === "your_key_here" ||
+    key.includes("your_key") ||
+    key.includes("YOUR_KEY")
+  ) {
+    return { apiKey: undefined };
+  }
+
+  // Format check warning without discarding the key
+  if (!key.startsWith("AIza")) {
+    console.warn(`[Gemini] Lưu ý: API Key không bắt đầu bằng tiền tố 'AIza' tiêu chuẩn (độ dài: ${key.length} ký tự). Vẫn tiếp tục thực hiện gọi API với key này.`);
   }
   
   return { apiKey: key };

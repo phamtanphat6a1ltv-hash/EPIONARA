@@ -171,10 +171,13 @@ function ProfilePage() {
   if (showHistory) return <LoginHistoryPage onBack={() => setShowHistory(false)} />;
 
   const saveKey = () => {
-    if (customKey.trim()) {
-      localStorage.setItem("sj_custom_api_key", customKey.trim());
+    let cleanKey = customKey.trim().replace(/^["'`]|["'`]$/g, "").replace(/^Bearer\s+/i, "").trim();
+    if (cleanKey) {
+      localStorage.setItem("sj_custom_api_key", cleanKey);
+      setCustomKey(cleanKey);
     } else {
       localStorage.removeItem("sj_custom_api_key");
+      setCustomKey("");
     }
     setKeySaved(true);
     setTimeout(() => setKeySaved(false), 2000);

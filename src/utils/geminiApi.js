@@ -5,6 +5,7 @@
 import { nativeToast } from "./nativeToast.js";
 import { sanitizeText } from "./sanitize";
 import { trackAICall } from "./performance.js";
+import { GoogleGenAI } from "@google/genai";
 
 const isProduction = import.meta.env?.PROD;
 
@@ -153,14 +154,25 @@ export async function callGeminiAPI({ system, messages, max_tokens = 800, signal
 
     let res;
     if (customKey) {
-      safeLog("info", "Sử dụng custom API key cá nhân, gọi trực tiếp Google API...");
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${customKey}`;
-      res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-        signal,
+      safeLog("info", "Sử dụng custom API key cá nhân, gọi trực tiếp Google API qua @google/genai...");
+      const ai = new GoogleGenAI({ apiKey: customKey });
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: toGeminiContents(messages),
+        config: {
+          systemInstruction: system ? sanitizeText(system) : undefined,
+          maxOutputTokens: max_tokens,
+          temperature: 0.85,
+          safetySettings,
+        }
       });
+      
+      const text = response.text;
+      if (!text) {
+        throw new Error("empty_response");
+      }
+      success = true;
+      return text;
     } else {
       let fallbackToDirect = false;
       try {
@@ -303,14 +315,27 @@ export async function* streamGeminiAPI({ system, messages, max_tokens = 800, sig
 
     let res;
     if (customKey) {
-      safeLog("info", "Sử dụng custom API key cá nhân, gọi trực tiếp Google API stream...");
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${customKey}`;
-      res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-        signal,
+      safeLog("info", "Sử dụng custom API key cá nhân, gọi trực tiếp Google API stream qua @google/genai...");
+      const ai = new GoogleGenAI({ apiKey: customKey });
+      const responseStream = await ai.models.generateContentStream({
+        model: 'gemini-2.5-flash',
+        contents: toGeminiContents(messages),
+        config: {
+          systemInstruction: system ? sanitizeText(system) : undefined,
+          maxOutputTokens: max_tokens,
+          temperature: 0.85,
+          safetySettings,
+        }
       });
+
+      for await (const chunk of responseStream) {
+        if (signal?.aborted) break;
+        if (chunk.text) {
+          yield chunk.text;
+        }
+      }
+      success = true;
+      return;
     } else {
       let fallbackToDirect = false;
       try {

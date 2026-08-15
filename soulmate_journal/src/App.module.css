@@ -1,0 +1,50 @@
+.mobileTabBar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobileTabBar {
+    display: flex !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 900;
+    background: var(--nav-bg, rgba(7, 9, 29, 0.95));
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-top: 1px solid var(--nav-border, rgba(108, 61, 232, 0.25));
+    padding: 10px 0 max(10px, env(safe-area-inset-bottom));
+    justify-content: space-around;
+    box-shadow: var(--nav-shadow, 0 -5px 20px rgba(0, 0, 0, 0.5));
+  }
+}
+
+.tabButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 12px;
+  transition: color 0.2s;
+  font-family: inherit;
+}
+
+.tabIcon {
+  font-size: 20px;
+}
+
+.tabLabel {
+  font-size: 9px;
+}
+
+.tabIndicator {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #a78bfa;
+  margin-top: 1px;
+}

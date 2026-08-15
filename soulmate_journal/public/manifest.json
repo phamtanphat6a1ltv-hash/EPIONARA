@@ -1,0 +1,37 @@
+{
+  "name": "EPIONARA — AI Psychology",
+  "short_name": "EPIONARA",
+  "description": "Hiểu bản thân là bước đầu để hiểu thế giới. AI-powered psychology platform.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07091d",
+  "theme_color": "#6c3de8",
+  "orientation": "portrait-primary",
+  "lang": "vi",
+  "categories": [
+    "health",
+    "lifestyle",
+    "education"
+  ],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "AI Phân Tích",
+      "url": "/?page=ai",
+      "description": "Phân tích cảm xúc với AI"
+    },
+    {
+      "name": "Nhật Ký",
+      "url": "/?page=journal",
+      "description": "Ghi nhật ký cảm xúc"
+    }
+  ]
+}

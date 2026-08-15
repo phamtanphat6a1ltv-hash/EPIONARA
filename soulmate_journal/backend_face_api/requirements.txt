@@ -1,0 +1,7 @@
+fastapi>=0.95.0
+uvicorn>=0.21.0
+opencv-python>=4.7.0.72
+numpy>=1.23.5
+deepface>=0.0.79
+tf-keras>=2.15.0
+tensorflow>=2.15.0

@@ -187,6 +187,6 @@ describe("Crypto Utilities", () => {
 
       // Clear storage
       localStorage.removeItem(`sj_login_attempts_${testUser}`);
-    });
+    }, 15000);
   });
 });

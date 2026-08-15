@@ -66,9 +66,9 @@ function toGeminiContents(messages) {
 
 // Trả về { apiKey?: string }
 function getCallConfig() {
-  const customKey = localStorage.getItem("sj_custom_api_key");
+  const customKey = typeof localStorage !== "undefined" ? localStorage.getItem("sj_custom_api_key") : null;
   const envKey = import.meta.env?.VITE_GEMINI_API_KEY;
-  let key = customKey || envKey || undefined;
+  let key = (customKey && customKey.trim()) || (envKey && envKey.trim()) || undefined;
   
   // Security: Validate format API key
   if (key && !key.startsWith("AIza")) {
@@ -129,7 +129,6 @@ export async function callGeminiAPI({ system, messages, max_tokens = 800, signal
   const startTime = performance.now();
   let success = false;
   
-  const customKey = localStorage.getItem("sj_custom_api_key");
   const { apiKey } = getCallConfig();
 
   try {
@@ -152,87 +151,58 @@ export async function callGeminiAPI({ system, messages, max_tokens = 800, signal
       body.systemInstruction = { parts: [{ text: sanitizeText(system) }] };
     }
 
-    let res;
-    if (customKey) {
-      safeLog("info", "Sử dụng custom API key cá nhân, gọi trực tiếp Google API qua @google/genai...");
-      const ai = new GoogleGenAI({ apiKey: customKey });
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: toGeminiContents(messages),
-        config: {
-          systemInstruction: system ? sanitizeText(system) : undefined,
-          maxOutputTokens: max_tokens,
-          temperature: 0.85,
-          safetySettings,
-        }
-      });
-      
-      const text = response.text;
-      if (!text) {
-        throw new Error("empty_response");
-      }
-      success = true;
-      return text;
-    } else {
-      let fallbackToDirect = false;
+    let text = "";
+
+    if (apiKey) {
       try {
-        // --- Qua proxy /api/gemini ---
-        res = await fetch("/api/gemini", {
+        safeLog("info", "Sử dụng API key, gọi Google API qua @google/genai...");
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContent({
+          model: "gemini-2.0-flash",
+          contents: toGeminiContents(messages),
+          config: {
+            systemInstruction: system ? sanitizeText(system) : undefined,
+            maxOutputTokens: max_tokens,
+            temperature: 0.85,
+            safetySettings,
+          }
+        });
+        text = response.text || "";
+      } catch (sdkErr) {
+        safeLog("warn", "Lỗi SDK @google/genai, thử REST fetch trực tiếp: " + sdkErr.message);
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const res = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ model, stream: false, apiKey, body }),
+          body: JSON.stringify(body),
           signal,
         });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err?.error?.message || err?.message || `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      }
+    } else {
+      safeLog("info", "Không tìm thấy direct key, gọi qua proxy /api/gemini...");
+      const res = await fetch("/api/gemini", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model, stream: false, body }),
+        signal,
+      });
 
-        if (res.status === 404 || !res.ok) {
-          if (apiKey) {
-            fallbackToDirect = true;
-          }
-        }
-      } catch (fetchErr) {
-        if (fetchErr.name === "AbortError") throw fetchErr;
-        if (fetchErr.message === "RATE_LIMIT") throw fetchErr;
-        
-        if (apiKey) {
-          fallbackToDirect = true;
-        } else {
-          safeLog("error", "Proxy fetch failed", fetchErr.message);
-          throw new Error("NETWORK_ERROR");
-        }
+      const contentType = res.headers.get("content-type") || "";
+      if (!res.ok || !contentType.includes("application/json")) {
+        throw new Error("PROXY_UNAVAILABLE");
       }
 
-      if (fallbackToDirect && apiKey) {
-        safeLog("info", "Proxy không khả dụng hoặc báo lỗi. Thử gọi trực tiếp Google API...");
-        try {
-          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-          res = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-            signal,
-          });
-        } catch (directErr) {
-          if (directErr.name === "AbortError") throw directErr;
-          safeLog("error", "Direct Google API fetch failed", directErr.message);
-          throw new Error("NETWORK_ERROR");
-        }
-      }
+      const data = await res.json();
+      text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     }
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      const msg = err?.error?.message || err?.message || `HTTP ${res.status}`;
-      // Silent fallback
-      safeLog("error", `API returned status ${res.status}`);
-      throw new Error(msg);
-    }
-
-    const data = await res.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     if (!text) {
-      const reason = data.candidates?.[0]?.finishReason;
-      if (reason === "SAFETY") throw new Error("safety_block");
       throw new Error("empty_response");
     }
 
@@ -240,7 +210,6 @@ export async function callGeminiAPI({ system, messages, max_tokens = 800, signal
     return text;
   } catch (err) {
     safeLog("warn", "API call failed. Error: " + err.message + ". Falling back to local mock engine.");
-      // Silent fallback warning
     return isJSONRequired ? generateLocalMockJSONResponse(messages, system) : generateLocalMockResponse(messages, system);
   } finally {
     const duration = performance.now() - startTime;
@@ -290,7 +259,6 @@ export async function* streamGeminiAPI({ system, messages, max_tokens = 800, sig
   let success = false;
   let generatorToYield = null;
   
-  const customKey = localStorage.getItem("sj_custom_api_key");
   const { apiKey } = getCallConfig();
 
   try {
@@ -313,118 +281,134 @@ export async function* streamGeminiAPI({ system, messages, max_tokens = 800, sig
       body.systemInstruction = { parts: [{ text: sanitizeText(system) }] };
     }
 
-    let res;
-    if (customKey) {
-      safeLog("info", "Sử dụng custom API key cá nhân, gọi trực tiếp Google API stream qua @google/genai...");
-      const ai = new GoogleGenAI({ apiKey: customKey });
-      const responseStream = await ai.models.generateContentStream({
-        model: 'gemini-2.5-flash',
-        contents: toGeminiContents(messages),
-        config: {
-          systemInstruction: system ? sanitizeText(system) : undefined,
-          maxOutputTokens: max_tokens,
-          temperature: 0.85,
-          safetySettings,
+    if (apiKey) {
+      try {
+        safeLog("info", "Sử dụng API key stream, gọi trực tiếp Google API qua @google/genai...");
+        const ai = new GoogleGenAI({ apiKey });
+        const responseStream = await ai.models.generateContentStream({
+          model: "gemini-2.0-flash",
+          contents: toGeminiContents(messages),
+          config: {
+            systemInstruction: system ? sanitizeText(system) : undefined,
+            maxOutputTokens: max_tokens,
+            temperature: 0.85,
+            safetySettings,
+          }
+        });
+
+        let hasYielded = false;
+        for await (const chunk of responseStream) {
+          if (signal?.aborted) break;
+          if (chunk.text) {
+            hasYielded = true;
+            yield chunk.text;
+          }
         }
+        if (hasYielded) {
+          success = true;
+          return;
+        }
+      } catch (sdkErr) {
+        safeLog("warn", "Lỗi SDK @google/genai stream, thử REST SSE fetch: " + sdkErr.message);
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+          signal,
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err?.error?.message || err?.message || `HTTP ${res.status}`);
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buffer = "";
+
+        while (true) {
+          if (signal?.aborted) {
+            reader.releaseLock();
+            break;
+          }
+
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const dataStr = line.slice(6).trim();
+              if (dataStr === "[DONE]" || !dataStr) continue;
+
+              try {
+                const data = JSON.parse(dataStr);
+                const textChunk = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (textChunk) yield textChunk;
+              } catch {
+                safeLog("warn", "Stream chunk parse error");
+              }
+            }
+          }
+        }
+        success = true;
+        return;
+      }
+    } else {
+      safeLog("info", "Không có direct key, gọi stream qua proxy /api/gemini...");
+      const res = await fetch("/api/gemini", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model, stream: true, body }),
+        signal,
       });
 
-      for await (const chunk of responseStream) {
-        if (signal?.aborted) break;
-        if (chunk.text) {
-          yield chunk.text;
+      const contentType = res.headers.get("content-type") || "";
+      if (!res.ok || (!contentType.includes("text/event-stream") && !contentType.includes("application/json"))) {
+        throw new Error("PROXY_UNAVAILABLE");
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+
+      while (true) {
+        if (signal?.aborted) {
+          reader.releaseLock();
+          break;
+        }
+
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const dataStr = line.slice(6).trim();
+            if (dataStr === "[DONE]" || !dataStr) continue;
+
+            try {
+              const data = JSON.parse(dataStr);
+              const textChunk = data.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (textChunk) yield textChunk;
+            } catch {
+              safeLog("warn", "Stream chunk parse error");
+            }
+          }
         }
       }
       success = true;
       return;
-    } else {
-      let fallbackToDirect = false;
-      try {
-        res = await fetch("/api/gemini", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ model, stream: true, apiKey, body }),
-          signal,
-        });
-
-        if (res.status === 404 || !res.ok) {
-          if (apiKey) {
-            fallbackToDirect = true;
-          }
-        }
-      } catch (fetchErr) {
-        if (fetchErr.name === "AbortError") throw fetchErr;
-        if (fetchErr.message === "RATE_LIMIT") throw fetchErr;
-        
-        if (apiKey) {
-          fallbackToDirect = true;
-        } else {
-          safeLog("error", "Stream proxy fetch failed", fetchErr.message);
-          throw new Error("NETWORK_ERROR");
-        }
-      }
-
-      if (fallbackToDirect && apiKey) {
-        safeLog("info", "Proxy stream không khả dụng hoặc báo lỗi. Thử gọi trực tiếp Google API stream...");
-        try {
-          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
-          res = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-            signal,
-          });
-        } catch (directErr) {
-          if (directErr.name === "AbortError") throw directErr;
-          safeLog("error", "Direct Google API stream fetch failed", directErr.message);
-          throw new Error("NETWORK_ERROR");
-        }
-      }
     }
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      const msg = err?.error?.message || err?.message || `HTTP ${res.status}`;
-      // Silent fallback
-      safeLog("error", `Stream status error ${res.status}`);
-      throw new Error(msg);
-    }
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder("utf-8");
-    let buffer = "";
-
-    while (true) {
-      if (signal?.aborted) {
-        reader.releaseLock();
-        break;
-      }
-
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop();
-
-      for (const line of lines) {
-        if (line.startsWith("data: ")) {
-          const dataStr = line.slice(6).trim();
-          if (dataStr === "[DONE]" || !dataStr) continue;
-
-          try {
-            const data = JSON.parse(dataStr);
-            const textChunk = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (textChunk) yield textChunk;
-          } catch {
-            safeLog("warn", "Stream chunk parse error");
-          }
-        }
-      }
-    }
-    success = true;
   } catch (err) {
     safeLog("warn", "Stream API call failed. Error: " + err.message + ". Falling back to local mock engine.");
-      // Silent fallback warning
     const combinedText = (system || "") + "\n" + (Array.isArray(messages) ? messages.map(m => m.content).join("\n") : messages || "");
     const isJSONRequired = combinedText.toLowerCase().includes("json") || combinedText.toLowerCase().includes("schema");
     const mockText = isJSONRequired ? generateLocalMockJSONResponse(messages, system) : generateLocalMockResponse(messages, system);

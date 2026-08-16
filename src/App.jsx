@@ -34,6 +34,7 @@ const ProfilePage      = lazy(() => import("./components/auth/ProfilePage.jsx"))
 const AIHub            = lazy(() => import("./pages/AIHub.jsx"));
 const MomentsHub       = lazy(() => import("./pages/MomentsHub.jsx"));
 const CheckoutMockPage  = lazy(() => import("./pages/CheckoutMockPage.jsx"));
+const CitationDemoPage  = lazy(() => import("./pages/CitationDemoPage.jsx"));
 const NotFoundPage      = lazy(() => import("./pages/NotFoundPage.jsx"));
 
 // Page loading fallback
@@ -181,6 +182,7 @@ function InnerAppContent() {
       } />
       <Route path="/letter" element={<PageWrapper><FutureLetterPage /></PageWrapper>} />
       <Route path="/checkout-mock" element={<PageWrapper><CheckoutMockPage /></PageWrapper>} />
+      <Route path="/citation-demo" element={<PageWrapper><CitationDemoPage /></PageWrapper>} />
       
       {/* Portal Hubs */}
       <Route path="/portal_ai" element={<PageWrapper><AIHub /></PageWrapper>} />

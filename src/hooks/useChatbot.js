@@ -36,9 +36,9 @@ import { useTestResults, useStats, useJournals } from "./useStorage.js";
  * }}
  */
 export function useChatbot() {
-  const { t, lang, moodContext, user } = useAppContext();
+  const { t, lang, moodContext, user, detectedAgeGroup } = useAppContext();
   const { handleError } = useErrorHandler();
-  const ageGroup = user?.ageGroup || "adult";
+  const ageGroup = detectedAgeGroup || user?.ageGroup || "adult";
 
   const { testResults } = useTestResults();
   const { stats } = useStats();

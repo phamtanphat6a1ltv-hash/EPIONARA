@@ -10,8 +10,9 @@ export function useEmotionStabilizer() {
   const currentLabelRef = useRef('uncertain');
   const stableFramesCountRef = useRef(0);
   const lastUpdateTimestampRef = useRef(0);
+  const emaAgeRef = useRef(25); // Default age
 
-  const processFrame = useCallback((rawScores, boundingBox, videoWidth, videoHeight) => {
+  const processFrame = useCallback((rawScores, boundingBox, videoWidth, videoHeight, rawAge = null) => {
     const now = Date.now();
 
     // 1. Calculate Face Quality (0 to 1) based on bounding box
@@ -124,6 +125,11 @@ export function useEmotionStabilizer() {
     if (displayConfidence === 100 && finalConfidence < 0.999) displayConfidence = 99;
     if (finalLabel === 'uncertain') displayConfidence = 0;
 
+    // Calculate EMA for age if provided
+    if (rawAge !== null && rawAge > 0) {
+      emaAgeRef.current = dynamicAlpha * rawAge + (1 - dynamicAlpha) * emaAgeRef.current;
+    }
+
     const result = {
       emotion: finalLabel,
       confidence: displayConfidence,
@@ -134,7 +140,8 @@ export function useEmotionStabilizer() {
       allEmotions: newEma,
       faceQuality: faceQuality,
       timestamp: now,
-      reason: reason
+      reason: reason,
+      age: Math.round(emaAgeRef.current)
     };
 
     setStabilizedResult(result);
@@ -146,6 +153,7 @@ export function useEmotionStabilizer() {
     emaScoresRef.current = {};
     currentLabelRef.current = 'uncertain';
     stableFramesCountRef.current = 0;
+    emaAgeRef.current = 25;
     setStabilizedResult(null);
   }, []);
 

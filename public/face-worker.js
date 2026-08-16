@@ -53,6 +53,7 @@ self.onmessage = async (e) => {
       await faceapi.nets.tinyFaceDetector.loadFromUri(modelUri);
       await faceapi.nets.faceLandmark68TinyNet.loadFromUri(modelUri);
       await faceapi.nets.faceExpressionNet.loadFromUri(modelUri);
+      await faceapi.nets.ageGenderNet.loadFromUri(modelUri);
       
       initialized = true;
       self.postMessage({ type: 'INIT_DONE' });
@@ -69,7 +70,8 @@ self.onmessage = async (e) => {
       const detections = await faceapi
         .detectAllFaces(tensor, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.4 }))
         .withFaceLandmarks(true)
-        .withFaceExpressions();
+        .withFaceExpressions()
+        .withAgeAndGender();
         
       tensor.dispose();
       
@@ -131,6 +133,7 @@ self.onmessage = async (e) => {
             disgusted: exps.disgusted || 0,
             surprised: exps.surprised || 0
           },
+          age: Math.round(d.age || 25), // Fallback to 25 if undetected
           landmarks: landmarks,
           detection: {
             box: { 

@@ -45,6 +45,7 @@ export function AppProvider({ children }) {
   const [isInitializing, setIsInitializing] = useState(true);
   const [authModal, setAuthModal] = useState(null);
   const [moodContext, setMoodContext] = useState(null);
+  const [detectedAgeGroup, setDetectedAgeGroup] = useState(null);
 
   const [soulCoins, setSoulCoins] = useState(() => {
     try {
@@ -145,6 +146,17 @@ export function AppProvider({ children }) {
     await UserStore.saveSession(updatedUser);
     const { userRepository } = await import("../repositories/userRepository.js");
     await userRepository.save(updatedUser);
+  };
+
+  const updateDetectedAgeGroup = (detectedAge) => {
+    let newAgeGroup = "adult";
+    if (detectedAge <= 11) newAgeGroup = "child";
+    else if (detectedAge <= 17) newAgeGroup = "teen";
+    else if (detectedAge <= 25) newAgeGroup = "young_adult";
+    else if (detectedAge <= 55) newAgeGroup = "adult";
+    else newAgeGroup = "elderly";
+
+    setDetectedAgeGroup(newAgeGroup);
   };
 
   const t = useMemo(() => T[lang] || T.vi, [lang]);
@@ -283,6 +295,8 @@ export function AppProvider({ children }) {
     showPricingModal,
     setShowPricingModal,
     upgradePremiumPlan,
+    detectedAgeGroup,
+    updateDetectedAgeGroup,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

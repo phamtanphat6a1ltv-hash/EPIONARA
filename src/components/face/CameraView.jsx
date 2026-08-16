@@ -27,7 +27,8 @@ export default function CameraView({ onDetected, onStop, detected, t }) {
         mainFace.expressions, 
         mainFace.detection.box, 
         video.videoWidth, 
-        video.videoHeight
+        video.videoHeight,
+        mainFace.age
       );
       
       onDetected(result);

@@ -1,5 +1,7 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useMemo } from "react";
 import PropTypes from "prop-types";
+import Globe from "react-globe.gl";
+import * as THREE from "three";
 import { useBlocker } from "react-router-dom";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { useJournal } from "../hooks/useJournal.js";
@@ -201,6 +203,66 @@ function JournalPageContent({ minimal = false }) {
       return () => clearTimeout(timer);
     }
   }, [showConfetti, setShowConfetti]);
+
+  const [showRecent, setShowRecent] = useState(true);
+
+  const globePoints = useMemo(() => {
+    if (!chartData) return [];
+    return chartData.filter(d => d.score !== null).map(d => {
+      let hash = 0;
+      for (let i = 0; i < d.date.length; i++) {
+        hash = d.date.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const rnd1 = Math.abs(Math.sin(hash)) * 10000;
+      const rnd2 = Math.abs(Math.cos(hash)) * 10000;
+      const lat = (rnd1 - Math.floor(rnd1)) * 180 - 90;
+      const lng = (rnd2 - Math.floor(rnd2)) * 360 - 180;
+      
+      const color = MOOD_COLORS[Math.min(d.score - 1, 7)];
+      const emoji = THREE_D_MOOD_EMOJIS[Math.min(d.score - 1, 7)] || "";
+      
+      return {
+        lat,
+        lng,
+        size: 3.5, // Increased size to make it stand out
+        color,
+        label: `<div style="padding:4px 8px;background:rgba(0,0,0,0.8);border-radius:6px;color:white;font-family:sans-serif;font-size:12px;text-align:center;">
+          <b>${d.date}</b><br/>
+          <span style="font-size:16px">${emoji}</span> ${moodLabels[Math.min(d.score - 1, 7)]}<br/>
+          Điểm: ${d.score}/8
+        </div>`
+      };
+    });
+  }, [chartData, moodLabels]);
+
+  const globeArcs = useMemo(() => {
+    if (!globePoints || globePoints.length === 0) return [];
+    const arcs = [];
+    // Generate arcs connecting random locations to the mood points to simulate data streams
+    for (let i = 0; i < 20; i++) {
+      const targetPoint = globePoints[Math.floor(Math.random() * globePoints.length)];
+      const startLat = (Math.random() - 0.5) * 180;
+      const startLng = (Math.random() - 0.5) * 360;
+      arcs.push({
+        startLat,
+        startLng,
+        endLat: targetPoint.lat,
+        endLng: targetPoint.lng,
+        color: targetPoint.color,
+      });
+    }
+    return arcs;
+  }, [globePoints]);
+
+  const globeMaterial = useMemo(() => {
+    return new THREE.MeshPhongMaterial({
+      color: "#0f172a", // Dark slate background
+      emissive: "#015380", // Dimmer cyan/blue glow to let points pop
+      wireframe: true,
+      transparent: true,
+      opacity: 0.15, // Reduced opacity
+    });
+  }, []);
 
   // Seeding mock data for exact visual match
   useEffect(() => {
@@ -643,11 +705,40 @@ function JournalPageContent({ minimal = false }) {
                     Bar
                   </span>
                 </button>
+                <button
+                  onClick={() => setChartView("globe")}
+                  className={`premium-segment-btn ${chartView === "globe" ? "active" : ""}`}
+                >
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ display: "inline-block" }}>
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="2" y1="12" x2="22" y2="12" />
+                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </svg>
+                    Globe
+                  </span>
+                </button>
               </div>
             </div>
             
             <ResponsiveContainer width="100%" height={260}>
-              {chartView === "area" ? (
+              {chartView === "globe" ? (
+                <div style={{ width: "100%", height: 260, position: "relative", display: "flex", justifyContent: "center", alignItems: "center", overflow: "hidden", borderRadius: 12 }}>
+                  <Globe
+                    width={typeof window !== "undefined" ? Math.min(window.innerWidth - 60, 600) : 300}
+                    height={260}
+                    backgroundColor="rgba(0,0,0,0)"
+                    showGlobe={true}
+                    globeMaterial={globeMaterial}
+                    showAtmosphere={false}
+                    pointsData={globePoints}
+                    pointAltitude={0.08}
+                    pointColor="color"
+                    pointRadius="size"
+                    pointLabel="label"
+                  />
+                </div>
+              ) : chartView === "area" ? (
                 <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                   <defs>
                     <linearGradient id="moodGrad" x1="0" y1="0" x2="0" y2="1">
@@ -740,23 +831,45 @@ function JournalPageContent({ minimal = false }) {
               {t.journal_recent}
             </h3>
 
-            {moods.length > 5 && (
-              <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-                {t.journal_showing_entries?.replace("{count}", moods.length)}
-              </span>
-            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {moods.length > 5 && (
+                <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                  {t.journal_showing_entries?.replace("{count}", moods.length)}
+                </span>
+              )}
+              <button 
+                onClick={() => setShowRecent(!showRecent)}
+                style={{
+                  background: "transparent", border: "none", color: "var(--text-secondary)",
+                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                  padding: 4, borderRadius: "50%",
+                }}
+              >
+                {showRecent ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="18 15 12 9 6 15" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
-          {moods.length === 0 ? (
-            <EmptyJournalState t={t} onWriteClick={handleWriteClick} />
-          ) : (
-            <VirtualJournalList
-              items={moods}
-              moodLabels={moodLabels}
-              moodColors={MOOD_COLORS}
-              moodEmojis={THREE_D_MOOD_EMOJIS}
-              height={moods.length > 5 ? 320 : moods.length * 64}
-              itemHeight={64}
-            />
+          {showRecent && (
+            moods.length === 0 ? (
+              <EmptyJournalState t={t} onWriteClick={handleWriteClick} />
+            ) : (
+              <VirtualJournalList
+                items={moods}
+                moodLabels={moodLabels}
+                moodColors={MOOD_COLORS}
+                moodEmojis={THREE_D_MOOD_EMOJIS}
+                height={moods.length > 5 ? 320 : moods.length * 64}
+                itemHeight={64}
+              />
+            )
           )}
         </GlassCard>
       </div>

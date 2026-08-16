@@ -197,6 +197,62 @@ export function useChatbot() {
     }
   }, [messages, mode]);
 
+  // Translate chat history when language changes
+  const [prevLang, setPrevLang] = useState(lang);
+  const messagesRef = useRef(messages);
+  
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    if (lang !== prevLang) {
+      setPrevLang(lang);
+      
+      const translateHistory = async () => {
+        const currentMessages = messagesRef.current;
+        if (currentMessages.length === 0) return;
+        
+        setLoading(true);
+        try {
+          const { callGeminiAPI } = await import("../utils/geminiApi.js");
+          const historyText = JSON.stringify(currentMessages.map(m => ({ id: m.id, content: m.content })));
+          
+          const prompt = `Translate the 'content' of the following JSON array to the language code '${lang}'. Preserve the JSON structure, array format, and 'id' exactly as provided. Return ONLY the JSON array, no markdown backticks, no explanations.\n\n${historyText}`;
+          
+          const response = await callGeminiAPI({
+             system: "You are a precise translator. Output valid JSON array only.",
+             messages: [{ role: "user", content: prompt }]
+          });
+          
+          let translatedText = response.replace(/```json/gi, "").replace(/```/g, "").trim();
+          
+          // Fallback if the response starts with some text
+          const jsonStart = translatedText.indexOf("[");
+          const jsonEnd = translatedText.lastIndexOf("]");
+          if (jsonStart !== -1 && jsonEnd !== -1) {
+            translatedText = translatedText.substring(jsonStart, jsonEnd + 1);
+          }
+          
+          const translatedArray = JSON.parse(translatedText);
+          
+          if (Array.isArray(translatedArray)) {
+             setMessages(prev => prev.map(m => {
+                const translatedMsg = translatedArray.find(tm => tm.id === m.id);
+                return translatedMsg ? { ...m, content: translatedMsg.content } : m;
+             }));
+          }
+        } catch (error) {
+           console.error("Translation failed:", error);
+        } finally {
+           setLoading(false);
+        }
+      };
+      
+      translateHistory();
+    }
+  }, [lang, prevLang]);
+
   const send = useCallback(async (text) => {
     const msgText = (text || inputRef.current).trim();
     if (!msgText || loading) return;

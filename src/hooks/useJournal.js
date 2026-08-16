@@ -82,7 +82,7 @@ If no distortions are found, return {"distortions": []}.`;
         const responseText = await callGeminiAPI({
           system: systemPrompt,
           messages: [{ role: "user", content: cleanNote }],
-          max_tokens: 600
+          max_tokens: 8192
         });
 
         let cleaned = responseText.trim();

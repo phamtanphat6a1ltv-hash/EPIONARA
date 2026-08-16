@@ -303,7 +303,7 @@ For the "radar" field: Analyze the input and distribute exactly 100 points acros
       const text = await callGeminiAPI({
         system: systemPrompt,
         messages: [{ role: "user", content: input }],
-        max_tokens: 1000,
+        max_tokens: 8192,
       });
 
       // Strict JSON cleaning

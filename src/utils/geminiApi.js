@@ -120,12 +120,12 @@ export const GEMINI_CANDIDATE_MODELS = [
  * @param {Object} options
  * @param {string} [options.system] - System prompting instructions for the agent
  * @param {Array<{role: 'user' | 'model' | 'system', content: string}>} options.messages - Conversations messages history
- * @param {number} [options.max_tokens=800] - Max output token limit
+ * @param {number} [options.max_tokens=8192] - Max output token limit
  * @param {AbortSignal} [options.signal] - Signal to abort the fetch request
  * @returns {Promise<string>} Core output text response from the AI
  * @throws {Error} If rate limit is hit, network fails, or AI returns safety blocks/empty text
  */
-export async function callGeminiAPI({ system, messages, max_tokens = 800, signal }) {
+export async function callGeminiAPI({ system, messages, max_tokens = 8192, signal }) {
   let lastUserMsg = "";
   if (Array.isArray(messages)) {
     lastUserMsg = messages.filter(m => m.role === "user").slice(-1)[0]?.content || "";
@@ -263,12 +263,12 @@ export async function callGeminiAPI({ system, messages, max_tokens = 800, signal
  * @param {Object} options
  * @param {string} [options.system] - System prompting instructions for the agent
  * @param {Array<{role: 'user' | 'model' | 'system', content: string}>} options.messages - Conversations messages history
- * @param {number} [options.max_tokens=800] - Max output token limit
+ * @param {number} [options.max_tokens=8192] - Max output token limit
  * @param {AbortSignal} [options.signal] - Signal to abort the fetch request
  * @returns {AsyncGenerator<string, void, unknown>} Async generator yielding text chunks
  * @throws {Error} If rate limit is hit, network fails, or status code is incorrect
  */
-export async function* streamGeminiAPI({ system, messages, max_tokens = 800, signal }) {
+export async function* streamGeminiAPI({ system, messages, max_tokens = 8192, signal }) {
   let lastUserMsg = "";
   if (Array.isArray(messages)) {
     lastUserMsg = messages.filter(m => m.role === "user").slice(-1)[0]?.content || "";

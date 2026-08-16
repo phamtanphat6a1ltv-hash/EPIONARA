@@ -391,7 +391,7 @@ export function useChatbot() {
       const gen = streamGeminiAPI({
         system: systemInstruction,
         messages: history,
-        max_tokens: 1200,
+        max_tokens: 8192,
       });
 
       let full = "";

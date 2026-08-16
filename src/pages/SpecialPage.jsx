@@ -57,7 +57,7 @@ function SpecialPage() {
     try {
       const auraText = await callGeminiAPI({
         messages: [{ role: "user", content: `User describes their energy with keyword: "${word}", mood: ${moodLabels[mood]}, energy: ${energy}/10. Reply ONLY JSON (no markdown):\n{"aura":"aura color name","auraColor":"#hex","element":"element (Fire/Water/Air/Earth/Light)","message":"short deep spiritual message","affirmation":"positive affirmation","archetype":"psychological archetype"}` }],
-        max_tokens: 600,
+        max_tokens: 8192,
       });
       const parsed = JSON.parse(auraText.replace(/```json|```/g, "").trim());
       setResult(parsed);

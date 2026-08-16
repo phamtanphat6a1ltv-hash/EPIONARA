@@ -28,7 +28,7 @@ function MomentsHub() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 32 }}>
           <BackButton onClick={() => setPage("home")} label={"← " + t.nav_home} />
           
-          <div style={{ display: "flex", background: "rgba(255,255,255,0.04)", padding: "4px", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.08)" }}>
+          <div style={{ display: "flex", background: "var(--glass1, rgba(255,255,255,0.04))", padding: "4px", borderRadius: "16px", border: "1px solid var(--border1, rgba(255,255,255,0.08))" }}>
             {tabs.map(tab => (
               <button
                 key={tab.id}
@@ -38,7 +38,7 @@ function MomentsHub() {
                   borderRadius: "12px",
                   border: "none",
                   background: activeTab === tab.id ? "linear-gradient(135deg,#6c3de8,#8b5cf6)" : "transparent",
-                  color: activeTab === tab.id ? "white" : "rgba(255,255,255,0.5)",
+                  color: activeTab === tab.id ? "white" : "var(--text-secondary, rgba(255,255,255,0.5))",
                   cursor: "pointer",
                   fontSize: "14px",
                   fontWeight: 600,

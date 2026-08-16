@@ -220,7 +220,7 @@ Keep your responses warm, focused, and deeply therapeutic. Response must be in $
       const gen = streamGeminiAPI({
         system: systemPrompt,
         messages: history,
-        max_tokens: 600
+        max_tokens: 8192
       });
 
       let fullResponse = "";
@@ -299,7 +299,7 @@ You MUST reply ONLY with this exact JSON format (in the user's language: ${LANG_
       const responseText = await callGeminiAPI({
         system: systemPrompt,
         messages: [{ role: "user", content: "Analyze situation and thoughts in JSON" }],
-        max_tokens: 800
+        max_tokens: 8192
       });
 
       let cleanText = responseText.trim();

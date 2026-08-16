@@ -11,19 +11,12 @@ EPIONARA là nền tảng tâm lý học thế hệ mới, kết hợp AI và kh
 | Tính năng | Mô tả | Trạng thái |
 |-----------|-------|------------|
 | 🤖 **AI Phân Tích Cảm Xúc** | Gemini AI phân tích văn bản và đưa ra insights tâm lý | ✅ Thật |
-| 😊 **Face Emotion** | face-api.js nhận diện 7 cảm xúc qua webcam realtime | ✅ Thật |
 | 🌐 **3D Emotion Globe** | Quả cầu Canvas 3D xoay được với dữ liệu nhật ký thật | ✅ Thật |
-| 📄 **PDF Export** | jsPDF + html2canvas xuất báo cáo tâm lý PDF | ✅ Thật |
-| 🎙️ **Voice Input** | Web Speech API nhận giọng nói 6 ngôn ngữ | ✅ Thật |
 | 🔮 **AI Mood Prediction** | AI phân tích 7 ngày dữ liệu để dự đoán tâm trạng | ✅ Thật |
 | 📔 **Emotion Journal** | Nhật ký cảm xúc với GitHub-style heatmap | ✅ Thật |
-| 🧩 **MBTI / EQ Tests** | Trắc nghiệm 16 câu với kết quả chi tiết | ✅ Thật |
 | 💬 **MindBot Chat** | 3 vai trò AI: Bạn thân / Nhà trị liệu / Life Coach | ✅ Thật |
-| 🌿 **Healing Corner** | 6 mini-games chữa lành: hơi thở, thiền, trí nhớ... | ✅ Thật |
-| 🧬 **Growth Map** | AI vẽ bản đồ phát triển tâm lý 6 chiều (radar chart) | ✅ Thật |
 | 📊 **Dashboard** | Tổng quan hành trình với biểu đồ tiến độ | ✅ Thật |
 | 📱 **PWA** | Cài được lên điện thoại, chạy offline | ✅ Thật |
-| ⬇️ **Data Export** | Xuất JSON/CSV toàn bộ dữ liệu cá nhân | ✅ Thật |
 | 🌙 **Dark/Light Mode** | Toggle với smooth transition | ✅ Thật |
 | 🌍 **6 Languages** | Tiếng Việt, English, 日本語, 한국어, 中文, Français | ✅ Thật |
 
@@ -34,12 +27,12 @@ EPIONARA là nền tảng tâm lý học thế hệ mới, kết hợp AI và kh
 ```
 EPIONARA/
 ├── src/
-│   ├── i18n/                 # 6 ngôn ngữ tách file
+│   ├── i18n/                 # Đa ngôn ngữ tách file
 │   │   ├── vi.js             # Tiếng Việt (full)
 │   │   ├── en.js             # English (full)
 │   │   ├── ja.js             # Japanese (full)
 │   │   ├── ko.js             # Korean (full)
-│   │   ├── zh_fr.js          # Chinese + French
+│   │   ├── zh.js             # Chinese (Lưu ý: trong project thực tế là zh.js, không phải zh_fr.js)
 │   │   └── index.js          # LANGS, T, useT()
 │   ├── utils/
 │   │   ├── db.js             # DB layer + stores + export
@@ -47,17 +40,15 @@ EPIONARA/
 │   │   └── constants.js      # MBTI, ARTICLES, MOODS...
 │   ├── hooks/
 │   │   ├── useStorage.js     # React hooks cho DB
-│   │   ├── useToast.js       # Toast notifications
-│   │   └── useTheme.js       # Dark/Light mode
+│   │   └── useToast.js       # Toast notifications
 │   ├── context/
-│   │   ├── ToastContext.jsx   # Global toast provider
-│   │   └── ThemeContext.jsx   # Global theme provider
+│   │   ├── ToastContext.jsx  # Global toast provider
+│   │   └── ThemeContext.jsx  # Global theme provider
 │   ├── components/
 │   │   ├── GlassCard.jsx     # Glassmorphism card
 │   │   ├── UIComponents.jsx  # Logo, StarField, BackButton...
 │   │   ├── LoadingScreen.jsx # Animated loading
 │   │   ├── LangSwitcher.jsx  # Language dropdown
-│   │   ├── ThemeToggle.jsx   # Dark/light toggle
 │   │   ├── VoiceInputBtn.jsx # Web Speech API
 │   │   ├── SkeletonCard.jsx  # Loading skeletons
 │   │   ├── ErrorBoundary.jsx # React error boundary
@@ -69,24 +60,10 @@ EPIONARA/
 │   │       └── ProfilePage.jsx
 │   ├── pages/
 │   │   ├── HomePage.jsx
-│   │   ├── AIPage.jsx
-│   │   ├── TestPage.jsx
-│   │   ├── JournalPage.jsx   # + GitHub heatmap
-│   │   ├── KnowledgePage.jsx
-│   │   ├── SpecialPage.jsx
-│   │   ├── DashboardPage.jsx
-│   │   ├── ChatbotPage.jsx
-│   │   ├── GamesPage.jsx     # 6 healing games
-│   │   ├── MoodGarden.jsx
-│   │   ├── MindReplay.jsx
-│   │   ├── FaceEmotionPage.jsx  # face-api.js thật
-│   │   ├── EmotionGlobe3DPage.jsx  # Canvas 3D thật
-│   │   ├── PDFReportPage.jsx  # jsPDF thật
-│   │   ├── MoodPredictPage.jsx # AI prediction thật
-│   │   ├── ProgressTimelinePage.jsx
-│   │   ├── CareModePage.jsx
-│   │   ├── FutureLetterPage.jsx
-│   │   └── PersonalityGrowthMap.jsx
+│   │   ├── JournalPage.jsx   # Nhật ký
+│   │   ├── SpecialPage.jsx   # Aura, kết quả
+│   │   ├── ChatbotPage.jsx   # Mindbot chat
+│   │   └── FutureLetterPage.jsx # Gửi thư tương lai
 │   ├── App.jsx               # Root với lazy loading
 │   ├── main.jsx              # Entry point
 │   └── global.css            # Global styles + CSS vars
@@ -96,7 +73,7 @@ EPIONARA/
 │   └── favicon.svg
 ├── package.json
 └── vite.config.js
-```
+
 
 ---
 
@@ -157,11 +134,8 @@ export const GEMINI_API_KEY = "AIzaSy...your_key_here";
 |-------|-----------|
 | UI Framework | React 18 + Vite |
 | Charts | Recharts |
-| AI | Google Gemini 2.0 Flash |
 | Face Detection | face-api.js (CDN) |
 | 3D Globe | Canvas API |
-| PDF Export | jsPDF + html2canvas |
-| Voice Input | Web Speech API |
 | Storage | localStorage (Supabase-ready schema) |
 | PWA | Service Worker + Web App Manifest |
 | Styling | CSS-in-JS + CSS Variables + global.css |
@@ -202,7 +176,7 @@ Cài đặt như app native:
 
 ## 👨‍💻 Tác Giả
 
-Made with 💜 for the AI Psychology Competition 2025
+THPT Quốc Học Quy Nhơn
 
 ---
 

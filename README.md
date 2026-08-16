@@ -134,11 +134,8 @@ export const GEMINI_API_KEY = "AIzaSy...your_key_here";
 |-------|-----------|
 | UI Framework | React 18 + Vite |
 | Charts | Recharts |
-| AI | Google Gemini 2.0 Flash |
 | Face Detection | face-api.js (CDN) |
 | 3D Globe | Canvas API |
-| PDF Export | jsPDF + html2canvas |
-| Voice Input | Web Speech API |
 | Storage | localStorage (Supabase-ready schema) |
 | PWA | Service Worker + Web App Manifest |
 | Styling | CSS-in-JS + CSS Variables + global.css |
@@ -179,7 +176,7 @@ Cài đặt như app native:
 
 ## 👨‍💻 Tác Giả
 
-Made with 💜 for the AI Psychology Competition 2025
+THPT Quốc Học Quy Nhơn
 
 ---
 
